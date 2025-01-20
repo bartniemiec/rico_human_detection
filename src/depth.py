@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import sys
-from receive_image.msg import coordinates, results
+from rico_human_detection.msg import coordinates, results
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from cv_bridge import CvBridge, CvBridgeError
@@ -14,7 +14,7 @@ class DepthReader:
         self.bridge = CvBridge()
         self.coordinates_sub = rospy.Subscriber("/coordinates", coordinates, self.coordinates_callback, queue_size=1)
         self.results_pub = rospy.Publisher("/results", results, queue_size=1)
-        self.path = '/home/rico/Desktop/BartoszNiemiecHumanDetection/src/receive_image/include/receive_image/written_depth.jpg'
+        self.path = '/home/rico/Desktop/BartoszNiemiecHumanDetection/src/rico_human_detection/include/rico_human_detection/written_depth.jpg'
 
     def coordinates_callback(self, data):
         image = data.depth_image

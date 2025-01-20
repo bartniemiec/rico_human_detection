@@ -3,13 +3,13 @@ import rospy
 import cv2
 from std_msgs.msg import String
 from ultralytics import YOLO
-from receive_image.srv import detect, detectResponse
+from rico_human_detection.srv import detect, detectResponse
 import math
 import time
 
 class Service:
     def __init__(self):
-        self.model = YOLO("/root/bartosz_ws_3/src/receive_image/include/receive_image/yolov8n-face.pt")
+        self.model = YOLO("/root/bartosz_ws_3/src/rico_human_detection/include/rico_human_detection/yolov8n-face.pt")
         self.service = rospy.Service("detect", detect, self.service_callback)
         self.pub = rospy.Publisher('chatter', String, queue_size=1)
         self.x = None
@@ -48,7 +48,7 @@ class Service:
         cv2.putText(img, "face", org, font, fontScale, color, thickness)
 
     def service_callback(self, req):
-        img = cv2.imread("/root/bartosz_ws_3/src/receive_image/include/receive_image/camera.jpg")
+        img = cv2.imread("/root/bartosz_ws_3/src/rico_human_detection/include/rico_human_detection/camera.jpg")
         results = self.model.predict(img,conf=0.5, verbose=True)
         try:
             for r in results:

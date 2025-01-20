@@ -6,9 +6,9 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
-from receive_image.msg import coordinates, results
+from rico_human_detection.msg import coordinates, results
 from cv_bridge import CvBridge, CvBridgeError
-from receive_image.srv import detect, detectResponse
+from rico_human_detection.srv import detect, detectResponse
 import time
 
 class ImageConverter:
@@ -22,7 +22,7 @@ class ImageConverter:
         self.confidence = None
         self.flag = None
         self.bridge = CvBridge()
-        self.path = '/home/rico/Desktop/bartoszniemiec_ws/src/receive_image/include/receive_image/camera.jpg'
+        self.path = '/home/rico/Desktop/bartoszniemiec_ws/src/rico_human_detection/include/rico_human_detection/camera.jpg'
 
     def create_message(self, depth_image, flag):
         msg = coordinates()
