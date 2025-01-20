@@ -1,0 +1,16 @@
+<launch>
+
+    <node pkg="receive_image" type="view_image.py" name="view_image" output="screen"
+    />
+
+    <node pkg="receive_image" type="server_client.py" name="server_client" output="screen"
+    />
+
+    <!-- <node pkg="receive_image" type="server_client_face.py" name="server_client" output="screen"
+    /> -->
+
+
+    <node pkg="receive_image" type="depth.py" name="depth" output="screen"
+    />
+
+</launch>
