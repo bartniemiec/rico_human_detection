@@ -7,14 +7,18 @@ from std_msgs.msg import String
 from cv_bridge import CvBridge, CvBridgeError
 import numpy as np
 import cv2
-
+import rospkg
+import os
 
 class DepthReader:
     def __init__(self):
         self.bridge = CvBridge()
         self.coordinates_sub = rospy.Subscriber("/coordinates", coordinates, self.coordinates_callback, queue_size=1)
         self.results_pub = rospy.Publisher("/results", results, queue_size=1)
-        self.path = '/home/rico/Desktop/BartoszNiemiecHumanDetection/src/rico_human_detection/include/rico_human_detection/written_depth.jpg'
+
+        package_path = rospkg.RosPack().get_path('rico_human_detection')
+        # self.path = '/home/rico/Desktop/BartoszNiemiecHumanDetection/src/rico_human_detection/include/rico_human_detection/written_depth.jpg'
+        self.path = os.path.join(package_path, 'include', 'rico_human_detection', 'written_depth.jpg')
 
     def coordinates_callback(self, data):
         image = data.depth_image
@@ -23,7 +27,7 @@ class DepthReader:
             depth_image = cv2.resize(depth_image, (1080, 720))
             depth_array = np.array(depth_image, dtype=np.float32)
             cv2.circle(depth_image, (data.x, data.y), 10, (0, 255, 0), 5)
-            cv2.imwrite(self.path, depth_image)
+            # cv2.imwrite(self.path, depth_image)
             if data.flag:
                 msg = results()
                 msg.is_human_detected = "YES"

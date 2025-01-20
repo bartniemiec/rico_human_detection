@@ -4,17 +4,21 @@ import cv2
 from std_msgs.msg import String
 from ultralytics import YOLO
 from rico_human_detection.srv import detect, detectResponse
+import rospkg
 import math
 import time
+import os
 
 class Service:
     def __init__(self):
-        self.model = YOLO("/home/rico/Desktop/bartoszniemiec_ws/src/rico_human_detection/include/rico_human_detection/yolov8n.onnx")
+        package_path = rospkg.RosPack().get_path('rico_human_detection')
+        self.model = YOLO(os.path.join(package_path, 'include', 'rico_human_detection', 'yolov8n.onnx'))
+
         self.service = rospy.Service("detect", detect, self.service_callback)
         self.pub = rospy.Publisher('chatter', String, queue_size=1)
         self.x = None
         self.y = None
-        self.path = "/home/rico/Desktop/bartoszniemiec_ws/src/rico_human_detection/include/rico_human_detection/camera.jpg"
+        self.path = os.path.join(package_path, 'include', 'rico_human_detection', 'camera.jpg')
 
     def draw_binding_box(self, r, classNames, img):
         boxes = r.boxes
@@ -28,7 +32,7 @@ class Service:
         self.x = int(round((x1+x2)/2))
         self.y = int(round(y1+y2)/2)
         cv2.circle(img, (self.x, self.y), 10, (255, 0, 0), 5)
-        cv2.imwrite('/home/rico/Desktop/BartoszNiemiecHumanDetection/src/rico_human_detection/include/rico_human_detection/written.jpg', img)
+        # cv2.imwrite('/home/rico/Desktop/BartoszNiemiecHumanDetection/src/rico_human_detection/include/rico_human_detection/written.jpg', img)
         
 
         # confidence

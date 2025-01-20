@@ -10,6 +10,8 @@ from rico_human_detection.msg import coordinates, results
 from cv_bridge import CvBridge, CvBridgeError
 from rico_human_detection.srv import detect, detectResponse
 import time
+import rospkg
+import os
 
 class ImageConverter:
     def __init__(self):
@@ -22,7 +24,9 @@ class ImageConverter:
         self.confidence = None
         self.flag = None
         self.bridge = CvBridge()
-        self.path = '/home/rico/Desktop/bartoszniemiec_ws/src/rico_human_detection/include/rico_human_detection/camera.jpg'
+
+        package_path = rospkg.RosPack().get_path('rico_human_detection')
+        self.path = os.path.join(package_path, 'include', 'rico_human_detection', 'camera.jpg')
 
     def create_message(self, depth_image, flag):
         msg = coordinates()
