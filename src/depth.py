@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import sys
-from rico_human_detection.msg import coordinates, results
+from rico_human_detection.msg import Coordinates, Results
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from cv_bridge import CvBridge, CvBridgeError
@@ -13,8 +13,8 @@ import os
 class DepthReader:
     def __init__(self):
         self.bridge = CvBridge()
-        self.coordinates_sub = rospy.Subscriber("/coordinates", coordinates, self.coordinates_callback, queue_size=1)
-        self.results_pub = rospy.Publisher("/results", results, queue_size=1)
+        self.coordinates_sub = rospy.Subscriber("/coordinates", Coordinates, self.coordinates_callback, queue_size=1)
+        self.results_pub = rospy.Publisher("/results", Results, queue_size=1)
 
         package_path = rospkg.RosPack().get_path('rico_human_detection')
         # self.path = '/home/rico/Desktop/BartoszNiemiecHumanDetection/src/rico_human_detection/include/rico_human_detection/written_depth.jpg'
@@ -29,14 +29,14 @@ class DepthReader:
             cv2.circle(depth_image, (data.x, data.y), 10, (0, 255, 0), 5)
             # cv2.imwrite(self.path, depth_image)
             if data.flag:
-                msg = results()
-                msg.is_human_detected = "YES"
-                msg.distance = str(depth_array[data.y, data.x]/1000)
+                msg = Results()
+                msg.is_human_detected = True
+                msg.distance = depth_array[data.y, data.x]/1000
                 self.results_pub.publish(msg)
             else:
-                msg = results()
-                msg.is_human_detected = "NO"
-                msg.distance = "NONE"
+                msg = Results()
+                msg.is_human_detected = False
+                msg.distance = -1.0
                 self.results_pub.publish(msg)
         except CvBridgeError as e:
  	        rospy.loginfo("There was an error converting ros message to image!")

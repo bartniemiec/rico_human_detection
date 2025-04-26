@@ -1,2 +1,0 @@
-string is_human_detected
-string distance

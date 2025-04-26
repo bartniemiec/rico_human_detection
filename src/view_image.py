@@ -6,7 +6,7 @@ import numpy as np
 import rospy
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
-from rico_human_detection.msg import coordinates, results
+from rico_human_detection.msg import Coordinates, Results
 from cv_bridge import CvBridge, CvBridgeError
 from rico_human_detection.srv import detect, detectResponse
 import time
@@ -17,7 +17,7 @@ class ImageConverter:
     def __init__(self):
         self.init_pub = rospy.Publisher("/init_pub", String, queue_size=1)
         self.init_sub = rospy.Subscriber("/init_pub", String, self.image_callback, queue_size=1)
-        self.coordinates_pub = rospy.Publisher("/coordinates", coordinates, queue_size=1)
+        self.coordinates_pub = rospy.Publisher("/coordinates", Coordinates, queue_size=1)
         self.x = None
         self.y = None
         self.name = None
@@ -29,7 +29,7 @@ class ImageConverter:
         self.path = os.path.join(package_path, 'include', 'rico_human_detection', 'camera.jpg')
 
     def create_message(self, depth_image, flag):
-        msg = coordinates()
+        msg = Coordinates()
         msg.x = self.x
         msg.y = self.y
         msg.depth_image = depth_image
@@ -65,6 +65,7 @@ class ImageConverter:
                 msg = self.create_message(depth_image, True)
                 #send coordinates to depth node so to read the distance
                 self.coordinates_pub.publish(msg)
+                rospy.loginfo("Human detected")
             else:
                 msg = self.create_message(depth_image, False)
                 #send coordinates to depth node so to read the distance

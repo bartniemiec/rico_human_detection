@@ -1,0 +1,2 @@
+bool is_human_detected
+float32 distance
