@@ -20,6 +20,9 @@ class DepthReader:
         # self.path = '/home/rico/Desktop/BartoszNiemiecHumanDetection/src/rico_human_detection/include/rico_human_detection/written_depth.jpg'
         self.path = os.path.join(package_path, 'include', 'rico_human_detection', 'written_depth.jpg')
 
+        self.current_depth = None
+        self.previous_depth = None
+
     def coordinates_callback(self, data):
         image = data.depth_image
         try:
@@ -30,8 +33,16 @@ class DepthReader:
             # cv2.imwrite(self.path, depth_image)
             if data.flag:
                 msg = Results()
-                msg.is_human_detected = True
+                
                 msg.distance = depth_array[data.y, data.x]/1000
+                if self.current_depth is not None:
+                    self.previous_depth = self.current_depth
+                self.current_depth = msg.distance
+
+                if self.current_depth and self.previous_depth > 1.5:
+                    msg.is_human_detected = False
+                else:
+                    msg.is_human_detected = True
                 self.results_pub.publish(msg)
             else:
                 msg = Results()

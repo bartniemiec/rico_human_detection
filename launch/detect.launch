@@ -1,16 +1,16 @@
 <launch>
 
-    <node pkg="rico_human_detection" type="view_image.py" name="view_image" output="screen"
+    <node pkg="rico_human_detection" type="image_controller2.py" name="image_controller" output="screen"
     />
 
-    <node pkg="rico_human_detection" type="server_client.py" name="server_client" output="screen"
+    <node pkg="rico_human_detection" type="detect_srv.py" name="detect_srv" output="screen"
     />
 
     <!-- <node pkg="rico_human_detection" type="server_client_face.py" name="server_client" output="screen"
     /> -->
 
 
-    <node pkg="rico_human_detection" type="depth.py" name="depth" output="screen"
+    <node pkg="rico_human_detection" type="calc_depth.py" name="calc_depth" output="screen"
     />
 
 </launch>

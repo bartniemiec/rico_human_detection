@@ -15,8 +15,6 @@ import os
 
 class ImageConverter:
     def __init__(self):
-        self.init_pub = rospy.Publisher("/init_pub", String, queue_size=1)
-        self.init_sub = rospy.Subscriber("/init_pub", String, self.image_callback, queue_size=1)
         self.coordinates_pub = rospy.Publisher("/coordinates", Coordinates, queue_size=1)
         self.x = None
         self.y = None
@@ -43,10 +41,7 @@ class ImageConverter:
         self.confidence = response.prob
         self.flag = response.flag
 
-    def image_callback(self, data):
-        #collect frames and save it
-        depth_image = rospy.wait_for_message("/camera/depth/image_rect_raw", Image)
-        rgb_image = rospy.wait_for_message("/camera/color/image_raw", Image)
+    def process_frame(self, rgb_image, depth_image):
 
         try:
             cv_image = self.bridge.imgmsg_to_cv2(rgb_image, desired_encoding="passthrough")
@@ -56,7 +51,9 @@ class ImageConverter:
         cv2.imwrite(self.path, cv_image)
 
         #call detection service and get response
+        # rospy.loginfo("Waiting for service!")
         rospy.wait_for_service("detect")
+        # rospy.loginfo("Wait is finally over!")
         try:
             detect_human = rospy.ServiceProxy("detect",detect)
             response = detect_human()
@@ -65,12 +62,12 @@ class ImageConverter:
                 msg = self.create_message(depth_image, True)
                 #send coordinates to depth node so to read the distance
                 self.coordinates_pub.publish(msg)
-                rospy.loginfo("Human detected")
+                # rospy.loginfo("Human detected")
             else:
                 msg = self.create_message(depth_image, False)
                 #send coordinates to depth node so to read the distance
                 self.coordinates_pub.publish(msg)
-                rospy.loginfo("No detection")
+                # rospy.loginfo("No detection")
         except rospy.ServiceException as e:
             print("Service call failed")
 
@@ -81,9 +78,30 @@ def main(args):
     ic = ImageConverter()
     try:
         # rospy.spin()
-        rate = rospy.Rate(5)
+        rate = rospy.Rate(10)
         while not rospy.is_shutdown():
-            ic.init_pub.publish("hi")
+            depth_image = rospy.wait_for_message("/camera/depth/image_rect_raw", Image)
+            rgb_image = rospy.wait_for_message("/camera/color/image_raw", Image)
+
+            rgb_stamp = rgb_image.header.stamp.to_sec()
+            depth_stamp = depth_image.header.stamp.to_sec()
+            now = rospy.Time.now().to_sec()
+
+            #obliczanie latencji
+            rgb_latency = (now - rgb_stamp)
+            depth_latency = (now - depth_stamp)
+            print("RGB latency: ", rgb_latency*1000, "ms", "Depth latency: ",  depth_latency*1000, "ms")
+
+            #obliczanie sync
+            time_diff = abs(rgb_stamp - depth_stamp)*1000
+            print("Diff between frames: ", time_diff, "ms")
+            # if time_diff < 50:
+            #     print("Frames are synchronized")
+            # else:
+            #     print("Frames are not synchronized, diff: ", time_diff, "ms")
+
+            if rgb_image is not None and depth_image is not None:
+                ic.process_frame(rgb_image, depth_image)
             rate.sleep()
 
 
