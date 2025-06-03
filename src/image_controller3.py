@@ -119,12 +119,11 @@ class ImageConverter:
             # cv_image = cv2.resize(cv_image, (1080, 720))
         except CvBridgeError as e:
             rospy.loginfo("There was an error converting ros message to image!")
-        # cv2.imwrite(self.path, cv_image)
+        cv2.imwrite(self.path, cv_image)
 
         #call detection service and get response
         try:
-            detect_human = rospy.ServiceProxy("detect",detect)
-            response = detect_human()
+            response = self.detect_human()
             self.create_response(response)
             if response.flag:
                 msg = self.create_message(depth_image, True)
