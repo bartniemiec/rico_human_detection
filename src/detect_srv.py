@@ -6,7 +6,6 @@ from ultralytics import YOLO
 from rico_human_detection.srv import detect, detectResponse
 import rospkg
 import math
-import time
 import os
 
 class Service:
@@ -33,7 +32,7 @@ class Service:
         self.y = int(round(y1+y2)/2)
         cv2.circle(img, (self.x, self.y), 10, (255, 0, 0), 5)
         # cv2.imwrite('/home/rico/Desktop/BartoszNiemiecHumanDetection/src/rico_human_detection/include/rico_human_detection/written.jpg', img)
-        
+
 
         # confidence
         confidence = math.ceil((box.conf[0]*100))/100
@@ -69,7 +68,7 @@ class Service:
         except UnboundLocalError as e:
             return detectResponse(x=None, y=None, name=None, prob=None, flag=False)
 
-    
+
 
 def detect_server():
     rospy.init_node("server_client")

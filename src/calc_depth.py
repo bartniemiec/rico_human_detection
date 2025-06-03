@@ -27,13 +27,13 @@ class DepthReader:
         image = data.depth_image
         try:
             depth_image = self.bridge.imgmsg_to_cv2(image, desired_encoding="passthrough")
-            depth_image = cv2.resize(depth_image, (1080, 720))
+            # depth_image = cv2.resize(depth_image, (1080, 720))
             depth_array = np.array(depth_image, dtype=np.float32)
             cv2.circle(depth_image, (data.x, data.y), 10, (0, 255, 0), 5)
             # cv2.imwrite(self.path, depth_image)
             if data.flag:
                 msg = Results()
-                
+
                 msg.distance = depth_array[data.y, data.x]/1000
                 if self.current_depth is not None:
                     self.previous_depth = self.current_depth
@@ -43,15 +43,19 @@ class DepthReader:
                     msg.is_human_detected = False
                 else:
                     msg.is_human_detected = True
+                print(msg)
                 self.results_pub.publish(msg)
             else:
                 msg = Results()
                 msg.is_human_detected = False
                 msg.distance = -1.0
+                print(msg)
                 self.results_pub.publish(msg)
         except CvBridgeError as e:
  	        rospy.loginfo("There was an error converting ros message to image!")
-            
+
+
+
 
 
 def main(args):
