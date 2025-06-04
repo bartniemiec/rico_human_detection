@@ -13,6 +13,8 @@ from message_filters import Subscriber, ApproximateTimeSynchronizer
 import time
 import rospkg
 import os
+import threading
+import Queue
 
 class ImageConverter:
     def __init__(self):
@@ -33,7 +35,22 @@ class ImageConverter:
         rgb_sub = Subscriber("/camera/color/image_raw", Image)
         depth_sub = Subscriber("/camera/depth/image_rect_raw", Image)
         ts = ApproximateTimeSynchronizer([rgb_sub, depth_sub], queue_size=1, slop=1)
-        ts.registerCallback(self.process_frame)
+        ts.registerCallback(self.enqueue_latest_pair)
+
+        self.latest_pair = Queue.Queue(maxsize=1)
+
+        t = threading.Thread(target=self.processing_loop)
+        t.daemon = True
+        t.start()
+
+    def enqueue_latest_pair(self, rgb, depth):
+        # Replace previous pair with latest
+        if self.latest_pair.full():
+            try:
+                self.latest_pair.get_nowait()
+            except Queue.Empty:
+                pass
+        self.latest_pair.put_nowait((rgb, depth))
 
     def create_message(self, depth_image, flag):
         msg = Coordinates()
@@ -56,16 +73,22 @@ class ImageConverter:
         depth_stamp = depth_image.header.stamp.to_sec()
 
         #LATENCY
-        # rospy.loginfo("RGB LATENCY: %s" % abs(rgb_stamp - now))
-        # rospy.loginfo("DEPTH LATENCY: %s" % abs(depth_stamp - now))
+        rospy.loginfo("RGB LATENCY: %s" % abs(rgb_stamp - now))
+        rospy.loginfo("DEPTH LATENCY: %s" % abs(depth_stamp - now))
 
         #SYNC
-        if abs(rgb_stamp - depth_stamp) > 0.1:
-            rospy.logwarn("SYNCHRONIZATION: %s" % abs(rgb_stamp - depth_stamp))
-        else:
-            rospy.loginfo("SYNCHRONIZATION: %s" % abs(rgb_stamp - depth_stamp))
+        # if abs(rgb_stamp - depth_stamp) > 0.1:
+        #     rospy.logwarn("SYNCHRONIZATION: %s" % abs(rgb_stamp - depth_stamp))
+        # else:
+        #     rospy.loginfo("SYNCHRONIZATION: %s" % abs(rgb_stamp - depth_stamp))
 
-
+    def processing_loop(self):
+        while not rospy.is_shutdown():
+            try:
+                rgb_msg, depth_msg = self.latest_pair.get(timeout=1)
+                self.process_frame(rgb_msg, depth_msg)
+            except Queue.Empty:
+                continue
 
     def process_frame(self, rgb_image, depth_image):
 
@@ -73,27 +96,31 @@ class ImageConverter:
 
         try:
             cv_image = self.bridge.imgmsg_to_cv2(rgb_image, desired_encoding="passthrough")
-            # cv_image = cv2.resize(cv_image, (1080, 720))
         except CvBridgeError as e:
-            rospy.loginfo("There was an error converting ros message to image!")
-        cv2.imwrite(self.path, cv_image)
+            rospy.logwarn("CV bridge conversion failed: %s", e)
+            return
+
+        t0 = time.time()
+        # cv2.imwrite(self.path, cv_image)
+        rospy.loginfo("Image saved in %.2f seconds", time.time() - t0)
+
 
         #call detection service and get response
-        try:
-            response = self.detect_human()
-            self.create_response(response)
-            if response.flag:
-                msg = self.create_message(depth_image, True)
-                #send coordinates to depth node so to read the distance
-                self.coordinates_pub.publish(msg)
-                # rospy.loginfo("Human detected")
-            else:
-                msg = self.create_message(depth_image, False)
-                #send coordinates to depth node so to read the distance
-                self.coordinates_pub.publish(msg)
-                # rospy.loginfo("No detection")
-        except rospy.ServiceException as e:
-            print("Service call failed")
+        # try:
+        #     response = self.detect_human()
+        #     self.create_response(response)
+        #     if response.flag:
+        #         msg = self.create_message(depth_image, True)
+        #         #send coordinates to depth node so to read the distance
+        #         self.coordinates_pub.publish(msg)
+        #         # rospy.loginfo("Human detected")
+        #     else:
+        #         msg = self.create_message(depth_image, False)
+        #         #send coordinates to depth node so to read the distance
+        #         self.coordinates_pub.publish(msg)
+        #         # rospy.loginfo("No detection")
+        # except rospy.ServiceException as e:
+        #     print("Service call failed")
 
 
 def main(args):
