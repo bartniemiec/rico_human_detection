@@ -1,6 +1,6 @@
 <launch>
 
-    <node pkg="rico_human_detection" type="image_controller2.py" name="image_controller" output="screen"
+    <node pkg="rico_human_detection" type="image_controller.py" name="image_controller" output="screen"
     />
 
     <node pkg="rico_human_detection" type="detect_srv.py" name="detect_srv" output="screen"

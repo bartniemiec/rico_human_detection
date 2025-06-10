@@ -97,6 +97,21 @@ class ImageConverter:
         self.confidence = response.prob
         self.flag = response.flag
 
+    def calc_params(self, rgb_image, depth_image):
+        now = rospy.Time.now().to_sec()
+        rgb_stamp = rgb_image.header.stamp.to_sec()
+        depth_stamp = depth_image.header.stamp.to_sec()
+
+        #LATENCY
+        rospy.loginfo("RGB LATENCY: %s" % abs(rgb_stamp - now))
+        rospy.loginfo("DEPTH LATENCY: %s" % abs(depth_stamp - now))
+
+        #SYNC
+        # if abs(rgb_stamp - depth_stamp) > 0.1:
+        #     rospy.logwarn("SYNCHRONIZATION: %s" % abs(rgb_stamp - depth_stamp))
+        # else:
+        #     rospy.loginfo("SYNCHRONIZATION: %s" % abs(rgb_stamp - depth_stamp))
+
     def process_frame(self, rgb_image, depth_image):
 
 

@@ -101,26 +101,26 @@ class ImageConverter:
             return
 
         t0 = time.time()
-        # cv2.imwrite(self.path, cv_image)
+        cv2.imwrite(self.path, cv_image)
         rospy.loginfo("Image saved in %.2f seconds", time.time() - t0)
 
 
         #call detection service and get response
-        # try:
-        #     response = self.detect_human()
-        #     self.create_response(response)
-        #     if response.flag:
-        #         msg = self.create_message(depth_image, True)
-        #         #send coordinates to depth node so to read the distance
-        #         self.coordinates_pub.publish(msg)
-        #         # rospy.loginfo("Human detected")
-        #     else:
-        #         msg = self.create_message(depth_image, False)
-        #         #send coordinates to depth node so to read the distance
-        #         self.coordinates_pub.publish(msg)
-        #         # rospy.loginfo("No detection")
-        # except rospy.ServiceException as e:
-        #     print("Service call failed")
+        try:
+            response = self.detect_human()
+            self.create_response(response)
+            if response.flag:
+                msg = self.create_message(depth_image, True)
+                #send coordinates to depth node so to read the distance
+                self.coordinates_pub.publish(msg)
+                # rospy.loginfo("Human detected")
+            else:
+                msg = self.create_message(depth_image, False)
+                #send coordinates to depth node so to read the distance
+                self.coordinates_pub.publish(msg)
+                # rospy.loginfo("No detection")
+        except rospy.ServiceException as e:
+            print("Service call failed")
 
 
 def main(args):

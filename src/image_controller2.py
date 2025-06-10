@@ -30,8 +30,8 @@ class ImageConverter:
         # Camera setup
         self.pipeline = rs.pipeline()
         self.config = rs.config()
-        self.config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-        self.config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+        self.config.enable_stream(rs.stream.depth, 424, 240, rs.format.z16, 30)
+        self.config.enable_stream(rs.stream.color, 424, 240, rs.format.bgr8, 30)
 
         try:
             self.pipeline.start(self.config)
@@ -93,12 +93,12 @@ class ImageConverter:
                 msg = self.create_message(self.bridge.cv2_to_imgmsg(depth_image, encoding="16UC1"), True)
                 #send coordinates to depth node so to read the distance
                 self.coordinates_pub.publish(msg)
-                rospy.loginfo("Human detected")
+                # rospy.loginfo("Human detected")
             else:
                 msg = self.create_message(self.bridge.cv2_to_imgmsg(depth_image, encoding="16UC1"), False)
                 #send coordinates to depth node so to read the distance
                 self.coordinates_pub.publish(msg)
-                rospy.loginfo("No detection")
+                # rospy.loginfo("No detection")
         except rospy.ServiceException as e:
             print("Service call failed")
 
@@ -114,7 +114,7 @@ def main(args):
         start = time.time()
         rgb_image, rgb_timestamp, depth_image, depth_timestamp = ic.capture_frames()
         stop = time.time()
-        print("LATENCY: ", (stop - start)*1000, "ms")
+        # print("LATENCY: ", (stop - start)*1000, "ms")
         sync_diff = abs(rgb_timestamp - depth_timestamp)*1000
         print("SYNC DIFF: ", sync_diff, "ms")
         if rgb_image is not None and depth_image is not None:
