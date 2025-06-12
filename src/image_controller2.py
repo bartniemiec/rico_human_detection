@@ -114,9 +114,10 @@ def main(args):
         start = time.time()
         rgb_image, rgb_timestamp, depth_image, depth_timestamp = ic.capture_frames()
         stop = time.time()
-        # print("LATENCY: ", (stop - start)*1000, "ms")
+        print("RGB LATENCY: ", abs(rgb_timestamp - start)*1000, "ms")
+        print("DEPTH LATENCY: ", abs(depth_timestamp - start)*1000, "ms")
         sync_diff = abs(rgb_timestamp - depth_timestamp)*1000
-        print("SYNC DIFF: ", sync_diff, "ms")
+        # print("SYNC DIFF: ", sync_diff, "ms")
         if rgb_image is not None and depth_image is not None:
             # rospy.loginfo("Captured frame!")
             ic.process_frame(rgb_image, depth_image)

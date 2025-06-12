@@ -11,13 +11,15 @@ import os
 class Service:
     def __init__(self):
         package_path = rospkg.RosPack().get_path('rico_human_detection')
-        self.model = YOLO(os.path.join(package_path, 'include', 'rico_human_detection', 'yolov8n.onnx'))
+        self.model = YOLO(os.path.join(package_path, 'include', 'rico_human_detection', 'yolov8n.pt'))
 
         self.service = rospy.Service("detect", detect, self.service_callback)
         self.pub = rospy.Publisher('chatter', String, queue_size=1)
         self.x = None
         self.y = None
         self.path = os.path.join(package_path, 'include', 'rico_human_detection', 'camera.jpg')
+
+        rospy.loginfo("ZROBIONE")
 
     def draw_binding_box(self, r, classNames, img):
         boxes = r.boxes
@@ -52,6 +54,7 @@ class Service:
         cv2.putText(img, classNames[cls], org, font, fontScale, color, thickness)
 
     def service_callback(self, req):
+        rospy.loginfo("JESTeM W CALLBACKU")
         classNames = ["human"]
         img = cv2.imread(self.path)
 
