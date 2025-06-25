@@ -10,6 +10,8 @@ from rico_human_detection.msg import Coordinates, Results
 from cv_bridge import CvBridge, CvBridgeError
 from rico_human_detection.srv import detect, detectResponse
 from message_filters import Subscriber, ApproximateTimeSynchronizer
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import time
