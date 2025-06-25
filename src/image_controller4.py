@@ -34,8 +34,14 @@ class ImageConverter:
 
         self.timestamps = []
         self.frequencies = []
+        self.rgb_latencies = []
+        self.depth_latencies = []
+        self.sync_offsets = []
 
         self.pipeline = rs.pipeline()
+        self.init_timestamp = None
+        self.init_rgb = None
+        self.init_depth = None
 
         t = threading.Thread(target=self.stream_camera)
         t.daemon = True
@@ -81,20 +87,21 @@ class ImageConverter:
             self.running = False
         # self.save_frequency_plot()
 
-    def calc_params(self, rgb_timestamp, depth_timestamp):
-        now = rospy.Time.now().to_sec()
-        rgb_stamp = rgb_timestamp * 1000
-        depth_stamp = depth_timestamp * 1000
+    def calc_params(self, rgb_image, depth_image):
+        now = (time.time() - self.init_timestamp)*1000
+        rgb_stamp = rgb_image.get_timestamp() - self.init_rgb
+        depth_stamp = depth_image.get_timestamp() - self.init_depth
 
-        #LATENCY
-        rospy.loginfo("RGB LATENCY: %s" % abs(rgb_stamp - now))
-        rospy.loginfo("DEPTH LATENCY: %s" % abs(depth_stamp - now))
+        rgb_latency = abs(rgb_stamp - now)
+        depth_latency = abs(depth_stamp - now)
+        sync_offset = abs(rgb_image.get_timestamp() - depth_image.get_timestamp())
 
-        #SYNC
-        # if abs(rgb_stamp - depth_stamp) > 0.1:
-        #     rospy.logwarn("SYNCHRONIZATION: %s" % abs(rgb_stamp - depth_stamp))
-        # else:
-        #     rospy.loginfo("SYNCHRONIZATION: %s" % abs(rgb_stamp - depth_stamp))
+        self.rgb_latencies.append(rgb_latency)
+        self.depth_latencies.append(depth_latency)
+        self.sync_offsets.append(sync_offset)
+
+        rospy.loginfo("RGB LATENCY: %s" % rgb_latency)
+        rospy.loginfo("DEPTH LATENCY: %s" % depth_latency)
 
     def save_frequency_plot(self):
         if len(self.timestamps) < 2:
@@ -131,16 +138,76 @@ class ImageConverter:
         )
         plt.savefig(self.results_path)
 
+    def save_latency_plot(self):
+        if len(self.timestamps) < 2:
+            rospy.logwarn("Not enough data to plot latency/sync.")
+            return
+
+        times = [t - self.timestamps[0] for t in self.timestamps]
+        print(times)
+
+        plt.figure(figsize=(12, 6))
+
+        avg_lat_rgb = np.mean(self.rgb_latencies)
+        avg_lat_depth = np.mean(self.depth_latencies)
+
+        plt.plot(times, self.rgb_latencies, label='RGB Latency (ms)', color='green')
+        plt.plot(times, self.depth_latencies, label='Depth Latency (ms)', color='orange')
+        plt.axhline(avg_lat_rgb, color='red', linestyle='--', label='Average RGB Latency: %.2f ms' % avg_lat_rgb)
+        plt.axhline(avg_lat_depth, color='red', linestyle='--', label='Average Depth Latency: %.2f ms' % avg_lat_depth)
+
+        plt.xlabel("Time (s)")
+        plt.ylabel("Miliseconds")
+        plt.title("Latency Over Time")
+        plt.grid(True)
+        plt.legend()
+
+        plot_path = os.path.join(
+            rospkg.RosPack().get_path('rico_human_detection'),
+            'include', 'rico_human_detection', 'latency_plot_cable.png'
+        )
+        plt.savefig(plot_path)
+
+    def save_sync_plot(self):
+        if len(self.timestamps) < 2:
+            rospy.logwarn("Not enough data to plot latency/sync.")
+            return
+
+        times = [t - self.timestamps[0] for t in self.timestamps]
+
+        plt.figure(figsize=(12, 6))
+
+        avg_sync = np.mean(self.sync_offsets[3:])
+
+        plt.plot(times[3:], self.sync_offsets[3:], label='Sync Offset (ms)', color='purple')
+        plt.axhline(avg_sync, color='red', linestyle='--', label='Average Sync Offset: %.2f ms' % avg_sync)
+
+        plt.xlabel("Time (s)")
+        plt.ylabel("Miliseconds")
+        plt.title("Synchronization Over Time")
+        plt.grid(True)
+        plt.legend()
+
+        plot_path = os.path.join(
+            rospkg.RosPack().get_path('rico_human_detection'),
+            'include', 'rico_human_detection', 'sync_plot_cable.png'
+        )
+        plt.savefig(plot_path)
+
     def capture_frames(self):
         if self.first:
             self.first = False
-            time.sleep(2)
+            frames = self.pipeline.wait_for_frames()
+            rgb = frames.get_color_frame()
+            depth = frames.get_depth_frame()
+            self.init_rgb = rgb.get_timestamp()
+            self.init_depth = depth.get_timestamp()
+            self.init_timestamp = time.time()
+            return None, None
         try:
             frames = self.pipeline.wait_for_frames()
             rgb = frames.get_color_frame()
             depth = frames.get_depth_frame()
-            rgb_timestamp = rgb.get_timestamp()
-            depth_timestamp = depth.get_timestamp()
 
             rgb_array = np.asanyarray(rgb.get_data())
             depth_array = np.asanyarray(depth.get_data())
@@ -149,10 +216,10 @@ class ImageConverter:
             if not rgb or not depth:
                 rospy.logwarn("Incomplete frames received.")
                 return None, None, None, None
-            return rgb_array, depth_array, rgb_timestamp, depth_timestamp
+            return rgb, depth
         except Exception as e:
             rospy.logerr("Frame capture failed: %s", e)
-            return None, None, None, None
+            return None, None
 
     def create_message(self, depth_image, flag):
         msg = Coordinates()
@@ -170,8 +237,12 @@ class ImageConverter:
         self.flag = response.flag
 
     def process_frame(self, rgb_image, depth_image):
+        
+        self.calc_params(rgb_image, depth_image)
 
         current_time = time.time()
+
+        depth_image = np.asanyarray(depth_image.get_data())
 
         if self.timestamps:
             delta = current_time - self.timestamps[-1]
@@ -205,16 +276,22 @@ def main(args):
     rospy.init_node('image_converter', anonymous=True)
     rospy.loginfo("View image node created")
     ic = ImageConverter()
-    rospy.on_shutdown(ic.shutdown)
+
+    def shutdown_hook():
+        rospy.loginfo("Shutting down, saving frequency plot...")
+        if ic.running:
+            rospy.loginfo("Stopping RealSense pipeline...")
+            ic.pipeline.stop()
+            ic.running = False
+        ic.save_frequency_plot()
+        ic.save_latency_plot()
+        ic.save_sync_plot()
+
+    rospy.on_shutdown(shutdown_hook)
 
     rate = rospy.Rate(60)
     while not rospy.is_shutdown():
-        start = time.time()
-        rgb_image, depth_image, rgb_timestamp, depth_timestamp = ic.capture_frames()
-        stop = time.time()
-        # print("RGB LATENCY: ", abs(stop - start)*1000, "ms")
-        # print("DEPTH LATENCY: ", abs(stop - start)*1000, "ms")
-        print("SYNCHRONIZATION: ", abs(rgb_timestamp - depth_timestamp)*1000, "ms")
+        rgb_image, depth_image = ic.capture_frames()
         if rgb_image is not None and depth_image is not None:
             ic.process_frame(rgb_image, depth_image)
         rate.sleep()

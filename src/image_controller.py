@@ -30,6 +30,9 @@ class ImageConverter:
 
         self.timestamps = []
         self.frequencies = []
+        self.rgb_latencies = []
+        self.depth_latencies = []
+        self.sync_offsets = []
 
         package_path = rospkg.RosPack().get_path('rico_human_detection')
         self.path = os.path.join(package_path, 'include', 'rico_human_detection', 'camera.jpg')
@@ -74,19 +77,20 @@ class ImageConverter:
         self.flag = response.flag
 
     def calc_params(self, rgb_image, depth_image):
-        now = rospy.Time.now().to_sec()
-        rgb_stamp = rgb_image.header.stamp.to_sec()
-        depth_stamp = depth_image.header.stamp.to_sec()
+        now = rospy.Time.now().to_sec()*1000
+        rgb_stamp = rgb_image.header.stamp.to_sec()*1000
+        depth_stamp = depth_image.header.stamp.to_sec()*1000
 
-        #LATENCY
-        rospy.loginfo("RGB LATENCY: %s" % abs(rgb_stamp - now))
-        rospy.loginfo("DEPTH LATENCY: %s" % abs(depth_stamp - now))
+        rgb_latency = abs(rgb_stamp - now)
+        depth_latency = abs(depth_stamp - now)
+        sync_offset = abs(rgb_stamp - depth_stamp)
 
-        #SYNC
-        # if abs(rgb_stamp - depth_stamp) > 0.1:
-        #     rospy.logwarn("SYNCHRONIZATION: %s" % abs(rgb_stamp - depth_stamp))
-        # else:
-        #     rospy.loginfo("SYNCHRONIZATION: %s" % abs(rgb_stamp - depth_stamp))
+        self.rgb_latencies.append(rgb_latency)
+        self.depth_latencies.append(depth_latency)
+        self.sync_offsets.append(sync_offset)
+
+        rospy.loginfo("RGB LATENCY: %s" % rgb_latency)
+        rospy.loginfo("DEPTH LATENCY: %s" % depth_latency)
 
     def processing_loop(self):
         while not rospy.is_shutdown():
@@ -130,6 +134,62 @@ class ImageConverter:
             'include', 'rico_human_detection', 'processing_frequency.png'
         )
         plt.savefig(self.results_path)
+
+    def save_latency_plot(self):
+        if len(self.timestamps) < 2:
+            rospy.logwarn("Not enough data to plot latency/sync.")
+            return
+
+        times = [t - self.timestamps[0] for t in self.timestamps]
+
+        plt.figure(figsize=(12, 6))
+
+        avg_lat_rgb = np.mean(self.rgb_latencies)
+        avg_lat_depth = np.mean(self.depth_latencies)
+
+
+        plt.plot(times[:-3], self.rgb_latencies[:-3], label='RGB Latency (ms)', color='green')
+        plt.plot(times[:-3], self.depth_latencies[:-3], label='Depth Latency (ms)', color='orange')
+        plt.axhline(avg_lat_rgb, color='red', linestyle='--', label='Average RGB Latency: %.2f ms' % avg_lat_rgb)
+        plt.axhline(avg_lat_depth, color='red', linestyle='--', label='Average Depth Latency: %.2f ms' % avg_lat_depth)
+
+        plt.xlabel("Time (s)")
+        plt.ylabel("Miliseconds")
+        plt.title("Latency Over Time")
+        plt.grid(True)
+        plt.legend()
+
+        plot_path = os.path.join(
+            rospkg.RosPack().get_path('rico_human_detection'),
+            'include', 'rico_human_detection', 'latency_plot.png'
+        )
+        plt.savefig(plot_path)
+
+    def save_sync_plot(self):
+        if len(self.timestamps) < 2:
+            rospy.logwarn("Not enough data to plot latency/sync.")
+            return
+
+        times = [t - self.timestamps[0] for t in self.timestamps]
+
+        plt.figure(figsize=(12, 6))
+
+        avg_sync = np.mean(self.sync_offsets[3:])
+
+        plt.plot(times, self.sync_offsets[1:], label='Sync Offset (ms)', color='purple')
+        plt.axhline(avg_sync, color='red', linestyle='--', label='Average Sync Offset: %.2f ms' % avg_sync)
+
+        plt.xlabel("Time (s)")
+        plt.ylabel("Miliseconds")
+        plt.title("Synchronization Over Time")
+        plt.grid(True)
+        plt.legend()
+
+        plot_path = os.path.join(
+            rospkg.RosPack().get_path('rico_human_detection'),
+            'include', 'rico_human_detection', 'sync_plot.png'
+        )
+        plt.savefig(plot_path)
 
     def process_frame(self, rgb_image, depth_image):
 
@@ -183,8 +243,10 @@ def main(args):
     def shutdown_hook():
         rospy.loginfo("Shutting down, saving frequency plot...")
         ic.save_frequency_plot()
+        ic.save_latency_plot()
+        ic.save_sync_plot()
 
-    # rospy.on_shutdown(shutdown_hook)
+    rospy.on_shutdown(shutdown_hook)
 
     try:
         # rospy.spin()
