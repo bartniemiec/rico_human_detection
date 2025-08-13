@@ -120,13 +120,15 @@ class ImageConverter:
 
         # Plot
         plt.figure()
-        plt.plot(smoothed_times, smoothed_freqs, label='Smoothed Frequency (Hz)', color='blue')
+        plt.plot(smoothed_times[1:500], smoothed_freqs[1:500], label='Smoothed Frequency (Hz)', color='blue')
         plt.axhline(avg_freq, color='red', linestyle='--', label='Average Hz: %.2f' % avg_freq)
-        plt.xlabel("Time (s)")
-        plt.ylabel("Hz")
-        plt.title("Smoothed Processing Frequency Over Time")
+        plt.xlabel("Time (s)", fontsize=18)
+        plt.ylabel("Hz", fontsize=18)
+        plt.title("Smoothed Processing Frequency Over Time", fontsize=18)
         plt.grid(True)
-        plt.legend()
+        plt.legend(fontsize=16)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
 
         # Save plot
         plot_path = os.path.join(
@@ -148,16 +150,18 @@ class ImageConverter:
         avg_lat_depth = np.mean(self.depth_latencies)
 
 
-        plt.plot(times[:-3], self.rgb_latencies[:-3], label='RGB Latency (ms)', color='green')
-        plt.plot(times[:-3], self.depth_latencies[:-3], label='Depth Latency (ms)', color='orange')
+        plt.plot(times[1:500], self.rgb_latencies[1:500], label='RGB Latency (ms)', color='green')
+        plt.plot(times[1:500], self.depth_latencies[1:500], label='Depth Latency (ms)', color='orange')
         plt.axhline(avg_lat_rgb, color='red', linestyle='--', label='Average RGB Latency: %.2f ms' % avg_lat_rgb)
         plt.axhline(avg_lat_depth, color='red', linestyle='--', label='Average Depth Latency: %.2f ms' % avg_lat_depth)
 
-        plt.xlabel("Time (s)")
-        plt.ylabel("Miliseconds")
-        plt.title("Latency Over Time")
+        plt.xlabel("Time (s)", fontsize=18)
+        plt.ylabel("Miliseconds", fontsize=18)
+        plt.title("Latency Over Time", fontsize=18)
         plt.grid(True)
-        plt.legend()
+        plt.legend(fontsize=16)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
 
         plot_path = os.path.join(
             rospkg.RosPack().get_path('rico_human_detection'),
@@ -176,14 +180,16 @@ class ImageConverter:
 
         avg_sync = np.mean(self.sync_offsets[3:])
 
-        plt.plot(times, self.sync_offsets[1:], label='Sync Offset (ms)', color='purple')
+        plt.plot(times[1:500], self.sync_offsets[1:500], label='Sync Offset (ms)', color='purple')
         plt.axhline(avg_sync, color='red', linestyle='--', label='Average Sync Offset: %.2f ms' % avg_sync)
 
-        plt.xlabel("Time (s)")
-        plt.ylabel("Miliseconds")
-        plt.title("Synchronization Over Time")
+        plt.xlabel("Time (s)", fontsize=18)
+        plt.ylabel("Miliseconds", fontsize=18)
+        plt.title("Synchronization Over Time", fontsize=18)
         plt.grid(True)
-        plt.legend()
+        plt.legend(fontsize=16)
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
 
         plot_path = os.path.join(
             rospkg.RosPack().get_path('rico_human_detection'),
